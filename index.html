@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>교무실 스마트 호출 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">🔔 선생님 호출하기</h1>
+        
+        <div class="mb-4">
+            <label class="block text-gray-700 font-bold mb-2">학번 및 이름</label>
+            <input type="text" id="studentInfo" placeholder="예: 3학년 1반 홍길동" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+        </div>
+
+        <div class="mb-4">
+            <label class="block text-gray-700 font-bold mb-2">호출할 선생님</label>
+            <select id="teacherSelect" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="">-- 선생님을 선택하세요 --</option>
+                <option value="김선생님 (국어)">김선생님 (국어)</option>
+                <option value="이선생님 (수학)">이선생님 (수학)</option>
+                <option value="박선생님 (영어)">박선생님 (영어)</option>
+            </select>
+        </div>
+
+        <button onclick="sendCall()" class="w-full bg-blue-500 text-white p-4 rounded-xl font-bold text-lg hover:bg-blue-600 transition shadow-md">
+            호출하기
+        </button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compatibility.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compatibility.js"></script>
+
+    <script>
+        // 1. 🔥 여기에 본인의 Firebase Config 내용을 덮어쓰세요!
+        const firebaseConfig = {
+  apiKey: "AIzaSyBCTYGb7kmndhvBqNdu2614keRBukVn6xI",
+  authDomain: "call-system-88ba3.firebaseapp.com",
+  databaseURL: "https://call-system-88ba3-default-rtdb.firebaseio.com",
+  projectId: "call-system-88ba3",
+  storageBucket: "call-system-88ba3.firebasestorage.app",
+  messagingSenderId: "71439966815",
+  appId: "1:71439966815:web:73047aa7efe6cc671ab1ea"
+};
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        //
+        const googleSheetsUrl = "https://script.google.com/macros/s/AKfycbwIUoguyCNjxn8KtgdZsQtbV5LYbwJhEBo7Hg-wjecdarIWpebALhRYDjt5fHBEt8zP/exec";
+
+        function sendCall() {
+            const studentInfo = document.getElementById('studentInfo').value;
+            const teacherSelect = document.getElementById('teacherSelect').value;
+
+            if (!studentInfo || !teacherSelect) {
+                alert('학번/이름과 선생님을 모두 입력해 주세요!');
+                return;
+            }
+
+            const callData = {
+                studentName: studentInfo,
+                teacherName: teacherSelect,
+                timestamp: new Date().toISOString()
+            };
+
+            // Firebase 실시간 알림 쏘기
+            database.ref('calls').push(callData)
+                .then(() => {
+                    // 구글 시트에 기록 남기기
+                    return fetch(googleSheetsUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(callData)
+                    });
+                })
+                .then(() => {
+                    alert(`${teacherSelect}님께 호출 신호를 보냈습니다!`);
+                    document.getElementById('studentInfo').value = '';
+                })
+                .catch((error) => {
+                    alert('호출 실패: ' + error.message);
+                });
+        }
+    </script>
+</body>
+</html>
