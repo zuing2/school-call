@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>교무실 호출 수신 대시보드</title>
+    
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compatibility.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compatibility.js"></script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-slate-900 min-h-screen p-6 text-white">
@@ -40,36 +44,32 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compatibility.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compatibility.js"></script>
-
     <script>
-        // 1. 🔥 여기에 본인의 Firebase Config 내용을 붙여넣으세요!
-       const firebaseConfig = {
-  apiKey: "AIzaSyBCTYGb7kmndhvBqNdu2614keRBukVn6xI",
-  authDomain: "call-system-88ba3.firebaseapp.com",
-  databaseURL: "https://call-system-88ba3-default-rtdb.firebaseio.com",
-  projectId: "call-system-88ba3",
-  storageBucket: "call-system-88ba3.firebasestorage.app",
-  messagingSenderId: "71439966815",
-  appId: "1:71439966815:web:73047aa7efe6cc671ab1ea"
-};
+        // 3. 🔥 여기에 본인의 Firebase Config 내용을 빈틈없이 붙여넣으세요!
+        const firebaseConfig = {
+            apiKey: "AIzaSyBCTYGb7kmndhvBqNdu2614keRBukVn6xI",
+            authDomain: "call-system-88ba3.firebaseapp.com",
+            databaseURL: "https://call-system-88ba3-default-rtdb.firebaseio.com",
+            projectId: "call-system-88ba3",
+            storageBucket: "call-system-88ba3.firebasestorage.app",
+            messagingSenderId: "71439966815",
+            appId: "1:71439966815:web:73047aa7efe6cc671ab1ea"
+        };
 
-        // Firebase 초기화
+        // Firebase 초기화 (이제 위에서 로드가 끝나서 에러가 나지 않습니다!)
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 딩동~ 벨소리를 웹 브라우저 자체 기능으로 연주하는 함수 (따로 음악 파일이 필요 없어요!)
+        // 브라우저 자체 기능으로 벨소리 연주
         function playDingDong() {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
             const ctx = new AudioContext();
             
-            // 첫 번째 음 (딩)
             let osc1 = ctx.createOscillator();
             let gain1 = ctx.createGain();
             osc1.type = 'sine';
-            osc1.frequency.setValueAtTime(523.25, ctx.currentTime); // C5 음
+            osc1.frequency.setValueAtTime(523.25, ctx.currentTime);
             gain1.gain.setValueAtTime(0.3, ctx.currentTime);
             gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
             osc1.connect(gain1);
@@ -77,12 +77,11 @@
             osc1.start();
             osc1.stop(ctx.currentTime + 0.4);
 
-            // 두 번째 음 (동)
             setTimeout(() => {
                 let osc2 = ctx.createOscillator();
                 let gain2 = ctx.createGain();
                 osc2.type = 'sine';
-                osc2.frequency.setValueAtTime(415.30, ctx.currentTime); // G#4 음
+                osc2.frequency.setValueAtTime(415.30, ctx.currentTime);
                 gain2.gain.setValueAtTime(0.3, ctx.currentTime);
                 gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
                 osc2.connect(gain2);
@@ -92,12 +91,11 @@
             }, 300);
         }
 
-        // Firebase에서 실시간 데이터 감지하기
         const callListTable = document.getElementById('callList');
         const noCallsDiv = document.getElementById('noCalls');
 
         database.ref('calls').on('value', (snapshot) => {
-            callListTable.innerHTML = ''; // 테이블 초기화
+            callListTable.innerHTML = '';
             const data = snapshot.val();
 
             if (!data) {
@@ -106,7 +104,6 @@
             }
             noCallsDiv.classList.add('hidden');
 
-            // 데이터를 최신순으로 화면에 출력
             Object.keys(data).forEach((key) => {
                 const call = data[key];
                 const date = new Date(call.timestamp);
@@ -120,12 +117,10 @@
                     <td class="p-4"><span class="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-sm font-medium border border-emerald-500/20">${call.teacherName}</span></td>
                     <td class="p-4"><button onclick="deleteCall('${key}')" class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-lg text-sm hover:bg-rose-500 hover:text-white transition">확인 완료</button></td>
                 `;
-                // 최신 호출이 맨 위로 오도록 추가
                 callListTable.insertBefore(tr, callListTable.firstChild);
             });
         });
 
-        // 새로운 호출이 들어왔을 때 소리 내기
         let isFirstLoad = true;
         database.ref('calls').limitToLast(1).on('child_added', (snapshot) => {
             if (isFirstLoad) {
@@ -135,7 +130,6 @@
             playDingDong();
         });
 
-        // 확인 완료 누르면 파이어베이스 대시보드에서만 삭제하는 함수 (구글 시트 로그는 그대로 남습니다!)
         function deleteCall(key) {
             database.ref('calls').child(key).remove();
         }
