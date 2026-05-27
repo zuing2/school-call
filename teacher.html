@@ -4,26 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>교무실 호출 수신 대시보드</title>
-    
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compatibility.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compatibility.js"></script>
-    
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-slate-900 min-h-screen p-6 text-white">
+<body class="bg-slate-900 min-h-screen p-6 text-white flex items-center justify-center">
 
-    <div class="max-w-5xl mx-auto">
+    <div id="authScreen" class="bg-slate-800 p-8 rounded-2xl shadow-2xl max-w-sm w-full border border-slate-700 text-center">
+        <span class="text-4xl">🔒</span>
+        <h2 class="text-xl font-bold mt-2 text-slate-200">교사 인증</h2>
+        <p class="text-xs text-slate-400 mt-1 mb-6">초기 비밀번호 '1234'를 입력하세요.</p>
+        <input type="password" id="pinInput" placeholder="비밀번호 입력" class="w-full p-3 rounded-xl bg-slate-700 text-white text-center font-bold tracking-widest border border-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 mb-4">
+        <button onclick="checkPassword()" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white p-3 rounded-xl font-bold transition">접속하기</button>
+    </div>
+
+    <div id="dashboardScreen" class="max-w-5xl w-full mx-auto hidden animate-fade-in">
         <header class="flex justify-between items-center mb-8 border-b border-slate-700 pb-4">
-            <h1 class="text-3xl font-bold text-emerald-400">🖥️ 교무실 실시간 호출 모니터</h1>
+            <h1 class="text-3xl font-bold text-blue-400">🖥️ 교무실 실시간 호출 모니터</h1>
             <div class="flex items-center gap-2">
                 <span class="inline-block w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></span>
-                <span class="text-slate-400 font-medium">실시간 연결 중</span>
+                <span class="text-slate-400 font-medium text-sm">실시간 동기화 중</span>
             </div>
         </header>
 
         <div class="bg-slate-800 rounded-2xl p-6 shadow-2xl border border-slate-700">
-            <h2 class="text-xl font-semibold mb-4 text-slate-300">현재 대기 중인 호출</h2>
-            
+            <h2 class="text-xl font-semibold mb-4 text-slate-300">현재 대기 중인 호출 명단</h2>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -34,8 +39,7 @@
                             <th class="p-4">관리</th>
                         </tr>
                     </thead>
-                    <tbody id="callList">
-                        </tbody>
+                    <tbody id="callList"></tbody>
                 </table>
                 <div id="noCalls" class="text-center py-12 text-slate-500 text-lg">
                     현재 들어온 호출이 없습니다. 😊
@@ -45,22 +49,36 @@
     </div>
 
     <script>
-        // 3. 🔥 여기에 본인의 Firebase Config 내용을 빈틈없이 붙여넣으세요!
+        // --- ⚙️ 여기에 본인의 Firebase 정보를 정확히 입력하세요 ---
         const firebaseConfig = {
-            apiKey: "AIzaSyBCTYGb7kmndhvBqNdu2614keRBukVn6xI",
-            authDomain: "call-system-88ba3.firebaseapp.com",
-            databaseURL: "https://call-system-88ba3-default-rtdb.firebaseio.com",
-            projectId: "call-system-88ba3",
-            storageBucket: "call-system-88ba3.firebasestorage.app",
-            messagingSenderId: "71439966815",
-            appId: "1:71439966815:web:73047aa7efe6cc671ab1ea"
+           apiKey: "AIzaSyCrQDtHUHoljrgUvzFeFQjVbNTVrqkjFSY",
+  authDomain: "call-f20c4.firebaseapp.com",
+  databaseURL: "https://call-f20c4-default-rtdb.firebaseio.com",
+  projectId: "call-f20c4",
+  storageBucket: "call-f20c4.firebasestorage.app",
+  messagingSenderId: "895634424356",
+  appId: "1:895634424356:web:9feb86bec028c593f54eb1"
         };
+        // --------------------------------------------------
 
-        // Firebase 초기화 (이제 위에서 로드가 끝나서 에러가 나지 않습니다!)
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // 브라우저 자체 기능으로 벨소리 연주
+        // 비밀번호 체크 함수
+        function checkPassword() {
+            const pin = document.getElementById('pinInput').value;
+            if (pin === '1234') {
+                document.getElementById('authScreen').classList.add('hidden');
+                document.getElementById('dashboardScreen').classList.remove('hidden');
+                document.body.className = "bg-slate-900 min-h-screen p-6 text-white"; // 배경 정렬 변경
+                startListening(); // 인증 성공 시 실시간 데이터 감시 시작
+            } else {
+                alert('비밀번호가 틀렸습니다!');
+                document.getElementById('pinInput').value = '';
+            }
+        }
+
+        // 딩동 벨소리 오디오 함수
         function playDingDong() {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
@@ -91,44 +109,46 @@
             }, 300);
         }
 
-        const callListTable = document.getElementById('callList');
-        const noCallsDiv = document.getElementById('noCalls');
+        function startListening() {
+            const callListTable = document.getElementById('callList');
+            const noCallsDiv = document.getElementById('noCalls');
 
-        database.ref('calls').on('value', (snapshot) => {
-            callListTable.innerHTML = '';
-            const data = snapshot.val();
+            database.ref('calls').on('value', (snapshot) => {
+                callListTable.innerHTML = '';
+                const data = snapshot.val();
 
-            if (!data) {
-                noCallsDiv.classList.remove('hidden');
-                return;
-            }
-            noCallsDiv.classList.add('hidden');
+                if (!data) {
+                    noCallsDiv.classList.remove('hidden');
+                    return;
+                }
+                noCallsDiv.classList.add('hidden');
 
-            Object.keys(data).forEach((key) => {
-                const call = data[key];
-                const date = new Date(call.timestamp);
-                const timeString = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                Object.keys(data).forEach((key) => {
+                    const call = data[key];
+                    const date = new Date(call.timestamp);
+                    const timeString = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-                const tr = document.createElement('tr');
-                tr.className = "border-b border-slate-700/50 hover:bg-slate-700/30 transition";
-                tr.innerHTML = `
-                    <td class="p-4 text-slate-400 text-sm">${timeString}</td>
-                    <td class="p-4 font-semibold text-white">${call.studentName}</td>
-                    <td class="p-4"><span class="bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full text-sm font-medium border border-emerald-500/20">${call.teacherName}</span></td>
-                    <td class="p-4"><button onclick="deleteCall('${key}')" class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-lg text-sm hover:bg-rose-500 hover:text-white transition">확인 완료</button></td>
-                `;
-                callListTable.insertBefore(tr, callListTable.firstChild);
+                    const tr = document.createElement('tr');
+                    tr.className = "border-b border-slate-700/50 hover:bg-slate-700/30 transition";
+                    tr.innerHTML = `
+                        <td class="p-4 text-slate-400 text-sm">${timeString}</td>
+                        <td class="p-4 font-semibold text-white">${call.studentName}</td>
+                        <td class="p-4"><span class="bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-sm font-medium border border-blue-500/20">${call.teacherName}</span></td>
+                        <td class="p-4"><button onclick="deleteCall('${key}')" class="bg-rose-500/10 text-rose-400 border border-rose-500/20 px-3 py-1 rounded-lg text-sm hover:bg-rose-500 hover:text-white transition">완료</button></td>
+                    `;
+                    callListTable.insertBefore(tr, callListTable.firstChild);
+                });
             });
-        });
 
-        let isFirstLoad = true;
-        database.ref('calls').limitToLast(1).on('child_added', (snapshot) => {
-            if (isFirstLoad) {
-                setTimeout(() => { isFirstLoad = false; }, 1000);
-                return;
-            }
-            playDingDong();
-        });
+            let isFirstLoad = true;
+            database.ref('calls').limitToLast(1).on('child_added', (snapshot) => {
+                if (isFirstLoad) {
+                    setTimeout(() => { isFirstLoad = false; }, 1000);
+                    return;
+                }
+                playDingDong();
+            });
+        }
 
         function deleteCall(key) {
             database.ref('calls').child(key).remove();
