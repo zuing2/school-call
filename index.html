@@ -4,21 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>교무실 스마트 호출 시스템</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compatibility.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compatibility.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
+<body class="bg-slate-50 min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="bg-white p-6 rounded-2xl shadow-lg w-full max-w-md">
-        <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">🔔 선생님 호출하기</h1>
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
+        <div class="text-center mb-6">
+            <span class="text-4xl">🔔</span>
+            <h1 class="text-2xl font-extrabold text-blue-600 mt-2">교무실 호출 시스템</h1>
+            <p class="text-sm text-slate-400 mt-1">선생님을 선택하고 호출 버튼을 눌러주세요.</p>
+        </div>
         
-        <div class="mb-4">
-            <label class="block text-gray-700 font-bold mb-2">학번 및 이름</label>
-            <input type="text" id="studentInfo" placeholder="예: 3학년 1반 홍길동" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="mb-5">
+            <label class="block text-slate-700 font-bold mb-2">1. 소속 학반 선택</label>
+            <div id="classButtons" class="grid grid-cols-5 gap-2">
+                </div>
         </div>
 
-        <div class="mb-4">
-            <label class="block text-gray-700 font-bold mb-2">호출할 선생님</label>
-            <select id="teacherSelect" class="w-full p-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <div class="mb-5">
+            <label class="block text-slate-700 font-bold mb-2">2. 이름 입력</label>
+            <input type="text" id="studentName" placeholder="이름을 입력하세요 (예: 홍길동)" class="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
+        </div>
+
+        <div class="mb-6">
+            <label class="block text-slate-700 font-bold mb-2">3. 호출할 선생님</label>
+            <select id="teacherSelect" class="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-slate-50">
                 <option value="">-- 선생님을 선택하세요 --</option>
                 <option value="김건우선생님 (국어)">김건우선생님 (국어)</option>
                 <option value="김영민선생님 (사회)">김영민선생님 (사회)</option>
@@ -30,55 +42,67 @@
                 <option value="최아현선생님 (지구)">최아현선생님 (지구)</option>
                 <option value="강만규선생님 (물리)">강만규선생님 (물리)</option>
                 <option value="채정태선생님 (수학)">채정태선생님 (수학)</option>
-                
             </select>
         </div>
 
-        <button onclick="sendCall()" class="w-full bg-blue-500 text-white p-4 rounded-xl font-bold text-lg hover:bg-blue-600 transition shadow-md">
+        <button onclick="sendCall()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold text-lg hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 active:scale-95">
             호출하기
         </button>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compatibility.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compatibility.js"></script>
-
     <script>
-        // 1. 🔥 여기에 본인의 Firebase Config 내용을 덮어쓰세요!
+        // --- ⚙️ 여기에 본인의 정보를 정확히 입력하세요 ---
         const firebaseConfig = {
-  apiKey: "AIzaSyBCTYGb7kmndhvBqNdu2614keRBukVn6xI",
-  authDomain: "call-system-88ba3.firebaseapp.com",
-  databaseURL: "https://call-system-88ba3-default-rtdb.firebaseio.com",
-  projectId: "call-system-88ba3",
-  storageBucket: "call-system-88ba3.firebasestorage.app",
-  messagingSenderId: "71439966815",
-  appId: "1:71439966815:web:73047aa7efe6cc671ab1ea"
-};
+              apiKey: "AIzaSyCrQDtHUHoljrgUvzFeFQjVbNTVrqkjFSY",
+  authDomain: "call-f20c4.firebaseapp.com",
+  databaseURL: "https://call-f20c4-default-rtdb.firebaseio.com",
+  projectId: "call-f20c4",
+  storageBucket: "call-f20c4.firebasestorage.app",
+  messagingSenderId: "895634424356",
+  appId: "1:895634424356:web:9feb86bec028c593f54eb1"
+        };
+        const googleSheetsUrl = "https://script.google.com/macros/s/AKfycbwSI5FjWUvsYsTK2Sb4-8hg0dR3XSZ9CNSn8atmcvyfWYr3m0g2A4TEhIUm3IWXVocy/exec";
+        // --------------------------------------------------
 
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        //
-        const googleSheetsUrl = "https://script.google.com/macros/s/AKfycbwIUoguyCNjxn8KtgdZsQtbV5LYbwJhEBo7Hg-wjecdarIWpebALhRYDjt5fHBEt8zP/exec";
+        // 1~10반 버튼 동적 생성 및 선택 로직
+        let selectedClass = "";
+        const classBtnContainer = document.getElementById('classButtons');
+        for (let i = 1; i <= 10; i++) {
+            const btn = document.createElement('button');
+            btn.type = "button";
+            btn.innerText = `${i}반`;
+            btn.className = "p-2 text-sm font-semibold border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-blue-50 transition";
+            btn.onclick = () => {
+                document.querySelectorAll('#classButtons button').forEach(b => b.className = "p-2 text-sm font-semibold border border-slate-200 rounded-lg bg-white text-slate-600 hover:bg-blue-50 transition");
+                btn.className = "p-2 text-sm font-semibold border border-blue-500 rounded-lg bg-blue-50 text-blue-600 font-bold";
+                selectedClass = `${i}반`;
+            };
+            classBtnContainer.appendChild(btn);
+        }
 
         function sendCall() {
-            const studentInfo = document.getElementById('studentInfo').value;
-            const teacherSelect = document.getElementById('teacherSelect').value;
+            const name = document.getElementById('studentName').value.trim();
+            const teacher = document.getElementById('teacherSelect').value;
 
-            if (!studentInfo || !teacherSelect) {
-                alert('학번/이름과 선생님을 모두 입력해 주세요!');
+            if (!selectedClass || !name || !teacher) {
+                alert('학반, 이름, 선생님을 모두 선택/입력해 주세요!');
                 return;
             }
 
+            const fullStudentInfo = `${selectedClass} ${name}`;
             const callData = {
-                studentName: studentInfo,
-                teacherName: teacherSelect,
+                studentName: fullStudentInfo,
+                teacherName: teacher,
                 timestamp: new Date().toISOString()
             };
 
-            // Firebase 실시간 알림 쏘기
+            // 1. Firebase 실시간 전송
             database.ref('calls').push(callData)
                 .then(() => {
-                    // 구글 시트에 기록 남기기
+                    // 2. 구글 시트 전송
                     return fetch(googleSheetsUrl, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -87,8 +111,8 @@
                     });
                 })
                 .then(() => {
-                    alert(`${teacherSelect}님께 호출 신호를 보냈습니다!`);
-                    document.getElementById('studentInfo').value = '';
+                    alert(`${teacher}님께 호출 신호를 보냈습니다!`);
+                    document.getElementById('studentName').value = '';
                 })
                 .catch((error) => {
                     alert('호출 실패: ' + error.message);
