@@ -57,7 +57,7 @@
         };
 
         // Firebase 초기화 (이제 위에서 로드가 끝나서 에러가 나지 않습니다!)
-        firebase.initializeApp(firebaseConfig);
+        firebase.initializeApp=(firebaseConfig);
         const database = firebase.database();
 
         // 브라우저 자체 기능으로 벨소리 연주
